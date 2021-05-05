@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<sub-flow name="customer-details-update-subflow" doc:id="7c1346ec-eeb0-4269-9910-ea171dfe4180" >
+		<ee:cache doc:name="Cache" doc:id="304d3481-c810-4d92-9230-fff128810f75">
+			<os:retrieve doc:name="Retrieve ${customers.store-name}" doc:id="1087b0d2-b1a0-4df4-bfc0-433da97cfbbb" key="${customers.store-name}" target="existingCustomers">
+			<os:default-value><![CDATA[#[[{id: random()*5000 as String}]]]]></os:default-value>
+		</os:retrieve>
+			<foreach doc:name="For Each" doc:id="71922f2c-81b9-437e-8cfd-a41cce98b5bc" collection="#[payload]">
+				<choice doc:name="Choice" doc:id="719bc164-fc57-4495-9ec8-a9a597baf08c">
+					<when expression="#[not (vars.existingCustomers..id contains payload.id)]">
+						<set-variable value="#[output applicatin/json --- vars.existingCustomers ++ [payload]]" doc:name="Set Variable existingCustomers" doc:id="18b3ee4c-1195-4a76-b9c2-64bbbd8e896b" variableName="existingCustomers" mimeType="application/json" />
+						<kafka:publish doc:name="Publish" doc:id="0e14a327-33d6-4931-baa2-743b9553e03b" config-ref="Apache_Kafka_Producer_configuration" topic="${topic.customers.name}" key="#[payload.id]">
+				<kafka:message><![CDATA[#[output application/json --- payload]]]></kafka:message>
+			</kafka:publish>
+						<logger level="INFO" doc:name="Logger " doc:id="b726b051-a07b-4cb1-8a84-c19fa3bb04f5" message='#[output application/json --- { msg: "Customer data submitted to Kafka Successfully ", customer: payload}]' category="CUSTOMER" />
+						<os:store doc:name="Store to ${customers.store-name}" doc:id="5adc1b0c-213f-43fb-a65e-aa5d66dff918" key="${customers.store-name}">
+			<os:value><![CDATA[#[vars.existingCustomers]]]></os:value>
+		</os:store>
+					</when>
+					<otherwise>
+						<logger level="INFO" doc:name="Logger" doc:id="78358c49-ef3b-44c4-9ac8-f2084c4b83ad" message='#[(payload.id default "NONE") ++ " Customer Already exists!"]' category="CUSTOMER" />
+					</otherwise>
+				</choice>
+		</foreach>
+		</ee:cache>
+	</sub-flow>
+	<flow name="customer-details-serviceFlow" doc:id="94df8da1-bc91-4c78-99af-bde26c482fc4" initialState="started">
+		<scheduler doc:name="Scheduler" doc:id="81208183-2ba4-4c3a-82b1-22820edd6b46" >
+			<scheduling-strategy >
+				<fixed-frequency frequency="10000"/>
+			</scheduling-strategy>
+		</scheduler>
+		<ee:transform doc:name="Produce Order" doc:id="6ba7bbd4-85ff-46d9-87a7-f1496c5228e0">
+			<ee:message>  
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java 
+
+---
+readUrl('classpath://customers.table.data',"application/csv",{"separator":"|"})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<flow-ref doc:name="customer-details-update-subflow" doc:id="a82d2aec-a1a3-4aee-a06e-53c5bca4073e" name="customer-details-update-subflow" />
+	</flow>
+</mule>

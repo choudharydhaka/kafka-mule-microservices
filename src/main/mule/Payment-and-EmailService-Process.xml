@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<os:object-store name="Object_store" doc:name="Object store" doc:id="8e4da571-0649-46dc-8358-10cbce24a22e" maxEntries="50000" />
+	<flow name="emailServiceFlow" doc:id="a324c61a-dac6-42af-97f0-c29bcee166c8" initialState="started">
+		<kafka:message-listener doc:name="${topic.email.name}" doc:id="96eaf488-c674-4be0-8de9-96f85ed1134a" config-ref="email-Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="d05be725-eaa0-4a3f-b482-ca80358a4153">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java 
+--- 
+{
+	data:read(payload, 'applicatoin/json') default {"MESSAGE":"Something Went Wrong"},
+	key: read(attributes.key default "None", 'application/java') default "None"
+	}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ca61edf0-bad0-481c-a618-9a4eae205299" message="#[output application/json --- {data:payload}]" category="EMAIL"/>
+		<os:store doc:name="Store" doc:id="1d7ae25a-be19-4faf-a0b2-43e4dd0403ae" key="#[payload.key]" objectStore="Object_store">
+			<os:value ><![CDATA[#[payload.data]]]></os:value>
+		</os:store>
+	</flow>
+	<flow name="payments-email-service" doc:id="610fe97a-b674-45b7-b704-674fabae2d4a" >
+		<kafka:message-listener doc:name="Message listener Payments" doc:id="e05e3642-37d1-4e95-b1b0-9d4c2dd66ce4" config-ref="payments-Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="3e49676a-b41f-47bd-8d53-67e250ecac72" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+read(payload, 'application/json')]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:retrieve doc:name="Retrieve" doc:id="3ed2390b-ae0f-450f-8341-bf0addc517d8" key="${payments.store-name}" target="existingPayments">
+			<os:default-value ><![CDATA[#[[]]]]></os:default-value>
+		</os:retrieve>
+		<choice doc:name="Choice" doc:id="9a68eefc-f07a-44ce-8fa1-0fc85244b792" >
+			<when expression="#[sizeOf(vars.existingPayments)&gt;0 and (vars.existingPayments..id contains payload.id)]">
+				<os:store doc:name="Add Payment to the Store ${payments.store-name}" doc:id="227bacc6-f423-4bbf-af04-3010503a8784" key="${payments.store-name}">
+			<os:value><![CDATA[#[output application/json --- vars.existingPayments as Array ++ [payload]]]]></os:value>
+		</os:store>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="fd10de4a-0375-4205-9d50-97f06bfc1b45" message='#["Payment already exists - " ++ (payload.id default "") as String]' category="EMAIL"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

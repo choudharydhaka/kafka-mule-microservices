@@ -1,0 +1,118 @@
+{
+	"info": {
+		"_postman_id": "3f0792cf-59ed-47ad-b64b-e74cd493595a",
+		"name": "Dhaks Order API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Submit an Order",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							"// //clear an environment variable\r",
+							"postman.clearEnvironmentVariable();\r",
+							"server=\"http://localhost:9991\"\r",
+							"baseUrl=\"api/orders\"\r",
+							" \r",
+							" \r",
+							"\r",
+							"//set an environment variable\r",
+							"\r",
+							"postman.setGlobalVariable(\"server\", server);\r",
+							"postman.setGlobalVariable(\"baseUrl\", baseUrl);\r",
+							"var id=  pm.variables.replaceIn('{{$randomInt}}');\r",
+							"postman.setEnvironmentVariable(\"orderID\", id);\r",
+							"\r",
+							"\r",
+							"//set a nested object as an environment variable\r",
+							"// const array = [1, 2, 3, 4];\r",
+							"// postman.setEnvironmentVariable(\"array\", JSON.stringify(array, null, 2));\r",
+							"// const obj = { a: [1, 2, 3, 4], b: { c: 'val' } };\r",
+							"// postman.setEnvironmentVariable(\"obj\", JSON.stringify(obj));\r",
+							"\r",
+							"// //get an environment variable\r",
+							"// postman.getEnvironmentVariable(\"key\");\r",
+							"\r",
+							"// //get an environment variable whose value is a stringified object\r",
+							"// //(wrap in a try-catch block if the data is coming from an unknown source)\r",
+							"// const array = JSON.parse(postman.getEnvironmentVariable(\"array\"));\r",
+							"// const obj = JSON.parse(postman.getEnvironmentVariable(\"obj\"));\r",
+							"\r",
+							"// //clear an environment variable\r",
+							"// postman.clearEnvironmentVariable(\"key\");\r",
+							"\r",
+							"// //set a global variable\r",
+							"// postman.setGlobalVariable(\"key\", \"value\");\r",
+							"\r",
+							"// //get a global variable\r",
+							"// postman.getGlobalVariable(\"key\");\r",
+							"\r",
+							"// //clear a global variable\r",
+							"// postman.clearGlobalVariable(\"key\");\r",
+							"\r",
+							"// //check if response body contains a string\r",
+							"// tests[\"Body matches string\"] = responseBody.has(\"string_you_want_to_search\");\r",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n            \"id\": {{orderID}},\r\n            \"quantity\": 1,\r\n            \"price\": 8513.49391478534,\r\n            \"customerId\": 9,\r\n            \"OrderState\": \"CREATED\",\r\n            \"product\": \"Orange49\"\r\n          }",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{server}}/{{baseUrl}}",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"{{baseUrl}}"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Retrive an Order Status",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"exec": [
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{server}}/{{baseUrl}}/{{orderID}}",
+					"host": [
+						"{{server}}"
+					],
+					"path": [
+						"{{baseUrl}}",
+						"{{orderID}}"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

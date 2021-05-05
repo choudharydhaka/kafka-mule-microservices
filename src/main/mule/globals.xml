@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:vm="http://www.mulesoft.org/schema/mule/vm" xmlns:db="http://www.mulesoft.org/schema/mule/db"
+	xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/vm http://www.mulesoft.org/schema/mule/vm/current/mule-vm.xsd">
+	<kafka:consumer-config name="order-details-Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="338729e0-335e-4c71-8c68-f2cbf69c42a8" >
+		<kafka:consumer-plaintext-connection groupId="order-details-client">
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap-servers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				
+				<!-- <kafka:topic-pattern value="${topic.order-validations.name}" /> -->
+				<kafka:topic-pattern value="${topic.orders.name}" />  
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+		
+	</kafka:consumer-config>
+	
+	
+	
+	<kafka:consumer-config name="fraud-Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="332f43d6-0bed-466d-9b46-b7c740f107cf" >
+		<kafka:consumer-plaintext-connection groupId="fraud" >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap-servers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				
+				<!-- <kafka:topic-pattern value="${topic.order-validations.name}" /> -->
+				<kafka:topic-pattern value="${topic.orders.name}" />  
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+		
+	</kafka:consumer-config>
+	
+	
+	
+	
+	<kafka:consumer-config name="inventory-Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="7276647e-96f5-4629-9086-66bff9d115ee" >
+		<kafka:consumer-plaintext-connection groupId="inventory">
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap-servers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				
+				<!-- <kafka:topic-pattern value="${topic.order-validations.name}" /> -->
+				<kafka:topic-pattern value="${topic.orders.name}" />  
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+		
+	</kafka:consumer-config>
+		
+		<kafka:consumer-config name="email-Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="3e63a69c-7ae9-47a5-aa4b-71d511ddc67c" >
+		<kafka:consumer-plaintext-connection groupId="email">
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap-servers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				
+				<!-- <kafka:topic-pattern value="${topic.order-validations.name}" /> -->
+				<kafka:topic-pattern value="${topic.email.name}" />  
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+		
+	</kafka:consumer-config>
+		
+		<kafka:consumer-config name="payments-Apache_Kafka_Consumer_configuration" doc:name="Apache Kafka Consumer configuration" doc:id="30752e4f-2806-43f7-ad11-b47aa52083d4" >
+		<kafka:consumer-plaintext-connection groupId="payments-client">
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap-servers}" />
+			</kafka:bootstrap-servers>
+			<kafka:topic-patterns >
+				
+				<!-- <kafka:topic-pattern value="${topic.order-validations.name}" /> -->
+				<kafka:topic-pattern value="${topic.payments.name}" />  
+			</kafka:topic-patterns>
+		</kafka:consumer-plaintext-connection>
+		
+	</kafka:consumer-config>
+		
+			
+	 
+		
+		
+		
+	<kafka:producer-config name="Apache_Kafka_Producer_configuration" doc:name="Apache Kafka Producer configuration" doc:id="b04340a3-87f5-45cc-bcb3-d9018df9aef8" >
+		<kafka:producer-plaintext-connection >
+			<kafka:bootstrap-servers >
+				<kafka:bootstrap-server value="${kafka.bootstrap-servers}" />
+			</kafka:bootstrap-servers>
+		</kafka:producer-plaintext-connection>
+	</kafka:producer-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="79bb3528-624f-48b4-b58d-ccc5d53cef33" file="app.yaml" />
+	<vm:config name="Email-VM_Config" doc:name="VM Config" doc:id="760ca264-2fc4-4936-a7fc-bbdb424f3d93">
+		<vm:queues >
+			<vm:queue queueName="${queue.emails.name}" />
+		</vm:queues>
+	</vm:config>
+	 
+</mule>

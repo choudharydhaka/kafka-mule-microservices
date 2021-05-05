@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="orderDetailsServiceFlow" doc:id="a324c61a-dac6-42af-97f0-c29bcee166c8" initialState="started">
+		<kafka:message-listener doc:name="OrderDetails" doc:id="96eaf488-c674-4be0-8de9-96f85ed1134a" config-ref="order-details-Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="34fbb187-7eac-4680-a59a-2fd6ee909f09" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+read(payload, 'applicatoin/json')]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="76b9a6b1-f52c-4386-9dbb-82cfaa1f4fad" >
+			<when expression='#[payload.OrderState == "VALIDATED" or  payload.ORDERSTATE == "VALIDATED"]'>
+				<logger level="DEBUG" doc:name="VALIDATED" doc:id="7f4b9b2d-2e30-4572-8256-de7144eec900" message="Nothing to process." category="ORDER_VALIDATION" />
+			</when>
+			 
+			<otherwise >
+	<logger level="INFO" doc:name="Logger" doc:id="cef2833a-734f-4faf-8b5e-9d344929540e" message='#[output application/json --- {validationType: "OrderDetails", msg: "Order Received", details: payload}]' category="ORDER_VALIDATION" />
+				<choice doc:name="Choice" doc:id="4ea52524-c56c-4593-9500-f3b04e34715a">
+			<when expression='#[payload.OrderState == "CREATED" and payload.price &gt; 0 and payload.quantity &gt;0]'>
+				<ee:transform doc:name="Transform Message" doc:id="e368a870-0cd3-45d4-9507-369385c877a4">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+OrderValidation: {
+//OrderValidationResult -> [\"PASS\",\"FAIL\",\"ERROR\"]
+//OrderValidationType -> [\"INVENTORY_CHECK\",\"FRAUD_CHECK\",\"ORDER_DETAILS_CHECK\"]
+//orderId ->  String
+//OrderValidation
+OrderValidationResult : "PASS",
+OrderValidationType: "ORDER_DETAILS_CHECK",
+orderId: payload.id
+
+
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="f9ed3de4-7bda-4d4e-b294-cc4a1086789d" message='#[output application/json --- {validationType: "OrderDetails", msg: "Valid order!", data: payload}]' category="ORDER_VALIDATION" />
+			</when>
+					<otherwise>
+				<ee:transform doc:name="Order Failed" doc:id="c4540a37-5ca1-4de5-8d79-20d6cbc504ff">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+OrderValidation: {
+//OrderValidationResult -> [\"PASS\",\"FAIL\",\"ERROR\"]
+//OrderValidationType -> [\"INVENTORY_CHECK\",\"FRAUD_CHECK\",\"ORDER_DETAILS_CHECK\"]
+//orderId ->  String
+//OrderValidation
+OrderValidationResult : "FAIL",
+OrderValidationType: "ORDER_DETAILS_CHECK",
+orderId: payload.id
+
+
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="3e9a6310-52b1-4746-afe6-dbcc4d06f6a1" message='#[output application/json --- {validationType: "OrderDetails", msg: "Not at Valid order!", data: payload}]' category="ORDER_VALIDATION" />
+			</otherwise>
+		</choice>
+		<kafka:publish doc:name="Order Publish to order-validations" doc:id="4355ff4e-1a6e-46ea-af0b-0aa079cb1f5c" config-ref="Apache_Kafka_Producer_configuration" topic="${topic.order-validations.name}">
+					<kafka:message><![CDATA[#[output application/json --- payload]]]></kafka:message>
+				</kafka:publish>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

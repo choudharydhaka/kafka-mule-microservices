@@ -1,0 +1,13 @@
+{
+  "sampleData": {
+    "48421bee-c5b8-4c20-9fb2-16150c30be7d": {
+      "payload": "sample_data/defaultvoidtype.dwl",
+      "vars-order": "sample_data/json.json"
+    },
+    "ae2cfacc-437d-42fd-8a1e-8cd195e0b932": {},
+    "a8859f38-9220-48be-9e47-5b62b00a8a42": {
+      "payload": "sample_data/java.dwl",
+      "vars-inventory": "sample_data/serializable.dwl"
+    }
+  }
+}

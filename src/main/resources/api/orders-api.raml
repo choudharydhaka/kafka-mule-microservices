@@ -1,0 +1,33 @@
+#%RAML 1.0
+title: Dhaks Order API
+version: v1
+
+/orders:
+  /{id}:
+    uriParameters:
+      id: integer
+    get:
+      
+  post:
+    description: Post an order
+    body:
+      application/json:
+       properties:
+         id: number
+         quantity: number
+         price: number
+         customerId: number
+         OrderState:  
+          enum: [CREATED]
+         product: string
+          #enum: [Apple ,Mobile]
+       example: 
+                   {
+            "id": 852,
+            "quantity": 1,
+            "price": 8513.49391478534,
+            "customerId": 9.0,
+            "OrderState": "CREATED",
+            "product": "Apple"
+          }
+  

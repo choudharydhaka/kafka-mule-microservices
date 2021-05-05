@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="fraudServiceFlow" doc:id="a324c61a-dac6-42af-97f0-c29bcee166c8" initialState="started">
+		<kafka:message-listener doc:name="fraud" doc:id="96eaf488-c674-4be0-8de9-96f85ed1134a" config-ref="fraud-Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="34fbb187-7eac-4680-a59a-2fd6ee909f09">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+read(payload, 'applicatoin/json') default {OrderState:"INVALID PAYLOAD"}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		
+		<choice doc:name="Choice" doc:id="b4317b44-4c87-4ced-a84f-42c1c30e5f0f" >
+			<when expression='#[payload.OrderState == "CREATED"]'>
+		<logger level="INFO" doc:name='{validationType: "Fraud", msg: "Order Received", details: payload}' doc:id="8cb1865a-202d-4dbd-a0fc-9f8a860c14e9" message='#[output application/json --- {validationType: "Fraud", msg: "Order Received", details: payload}]' category="FRAUD_VALIDATION"/>
+				<ee:transform doc:name="Transform Message" doc:id="e368a870-0cd3-45d4-9507-369385c877a4">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+OrderValidation: {
+//OrderValidationResult -> [\"PASS\",\"FAIL\",\"ERROR\"]
+//OrderValidationType -> [\"INVENTORY_CHECK\",\"FRAUD_CHECK\",\"ORDER_DETAILS_CHECK\"]
+//orderId ->  String
+//OrderValidation
+OrderValidationResult : "PASS",
+OrderValidationType: "FRAUD_CHECK",
+orderId: payload.id
+
+
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="f9ed3de4-7bda-4d4e-b294-cc4a1086789d" message='#[output applicatin/json --- {validationType: "Fraud", msg: "Order Received",record: payload}]' category="FRAUD_VALIDATION"/>
+				<kafka:publish doc:name="Order Publish to order-validations" doc:id="a5a39824-cb0a-44a1-95a2-0fa1664ec4e9" config-ref="Apache_Kafka_Producer_configuration" topic="${topic.order-validations.name}">
+					<kafka:message><![CDATA[#[output application/json --- payload]]]></kafka:message>
+				</kafka:publish>
+			</when>
+				<when expression='#[payload.OrderState == "VALIDATED" or  payload.ORDERSTATE == "VALIDATED"]'>
+				<logger level="DEBUG" doc:name="Nothing to process." doc:id="80d0133d-5efe-459e-a084-422b698183ef" message='Nothing to process.' category="FRAUD_VALIDATION"/>
+
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Skip Order Logger" doc:id="3b8a7526-7ab6-4c26-b020-5e23e1c665d7" message='#[output applicatin/json --- {validationType: "Fraud", msg:"Fraud Validatino failed - Not a valid order Status with orderId: "  ++ ((payload.id  default payload.oid) as String default "" ),record: payload}]' category="FRAUD_VALIDATION"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

@@ -1,0 +1,36 @@
+kafka:
+  bootstrap-servers: "localhost:9092"
+
+# keep all the topic under this key with option to onfigure multiple options    
+topic:
+  orders:
+    name: orders
+    partition: ""
+  order-validations:
+    name: order-validations
+  email:
+    name: emails
+  payments:
+    name: payments  
+
+  customers:
+    name: customers
+    
+payments:
+  store-name:  payments
+    
+inventory:
+  store-name: store-of-reserved-stock
+
+customers:
+  store-name: customers
+      
+aggregator:
+  store-name: store-aggregator-orders-details
+  
+email:
+  store-name: emails
+  
+queue:
+  emails:
+    name: emails 

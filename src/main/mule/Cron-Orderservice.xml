@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd">
+	<sub-flow name="order-implementation-subflow" doc:id="2d4d95e0-35cf-4623-8310-b39df8c6ffa6" >
+		<kafka:publish doc:name="Publish Order to ${topic.orders.name}" doc:id="a929e65d-f5c5-4bde-8627-65f9fbfff040" config-ref="Apache_Kafka_Producer_configuration" topic="${topic.orders.name}" key="#[payload.id as String]" target="orderResponse">
+			<kafka:message><![CDATA[#[output application/json --- payload]]]></kafka:message>
+		</kafka:publish>
+		<logger level="INFO" doc:name="Logger Order  " doc:id="438a9b24-229b-48f8-b6e3-6126b61cb278" message='#[output application/json --- { msg: "Order Submitted to Kafka Successfully ", order: payload}]' category="ORDER" />
+		<kafka:publish doc:name="Publish Order ${topic.payments.name}" doc:id="48421bee-c5b8-4c20-9fb2-16150c30be7d" config-ref="Apache_Kafka_Producer_configuration" topic="${topic.payments.name}" key="#[payload.id]" target="paymentResponse">
+			<kafka:message><![CDATA[#[%dw 2.0
+output application/json
+var data=random()
+var modVal=1000
+var countries=["AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ", "BH", "BS", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SZ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"]
+---
+
+{
+id:  ceil (data*modVal as Number) as String as Number,
+orderId: payload.id,
+amount: payload.price,
+ccy:  countries[ceil(data*modVal) mod 249]
+
+}]]]></kafka:message>
+		</kafka:publish>
+		<logger level="INFO" doc:name="Logger Payment" doc:id="b726b051-a07b-4cb1-8a84-c19fa3bb04f5" message='#[output application/json --- { msg: "Payment Submitted to Kafka Successfully ", payment: vars.paymentResponse}]' category="PAYMENT" />
+	</sub-flow>
+	<flow name="order-job-flow" doc:id="94df8da1-bc91-4c78-99af-bde26c482fc4" initialState="stopped">
+		<scheduler doc:name="Scheduler" doc:id="2945ae16-fb22-4134-9166-32607abf4a90" >
+			<scheduling-strategy >
+				<fixed-frequency startDelay="1" frequency="10000"/>
+			</scheduling-strategy>
+		</scheduler>
+		<ee:transform doc:name="Produce Order" doc:id="6ba7bbd4-85ff-46d9-87a7-f1496c5228e0" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var data=random()
+var modVal=1000
+// var countries=["AF", "AX", "AL", "DZ", "AS", "AD", "AO", "AI", "AQ", "AG", "AR", "AM", "AW", "AU", "AT", "AZ", "BH", "BS", "BD", "BB", "BY", "BE", "BZ", "BJ", "BM", "BT", "BO", "BQ", "BA", "BW", "BV", "BR", "IO", "BN", "BG", "BF", "BI", "KH", "CM", "CA", "CV", "KY", "CF", "TD", "CL", "CN", "CX", "CC", "CO", "KM", "CG", "CD", "CK", "CR", "CI", "HR", "CU", "CW", "CY", "CZ", "DK", "DJ", "DM", "DO", "EC", "EG", "SV", "GQ", "ER", "EE", "ET", "FK", "FO", "FJ", "FI", "FR", "GF", "PF", "TF", "GA", "GM", "GE", "DE", "GH", "GI", "GR", "GL", "GD", "GP", "GU", "GT", "GG", "GN", "GW", "GY", "HT", "HM", "VA", "HN", "HK", "HU", "IS", "IN", "ID", "IR", "IQ", "IE", "IM", "IL", "IT", "JM", "JP", "JE", "JO", "KZ", "KE", "KI", "KP", "KR", "KW", "KG", "LA", "LV", "LB", "LS", "LR", "LY", "LI", "LT", "LU", "MO", "MK", "MG", "MW", "MY", "MV", "ML", "MT", "MH", "MQ", "MR", "MU", "YT", "MX", "FM", "MD", "MC", "MN", "ME", "MS", "MA", "MZ", "MM", "NA", "NR", "NP", "NL", "NC", "NZ", "NI", "NE", "NG", "NU", "NF", "MP", "NO", "OM", "PK", "PW", "PS", "PA", "PG", "PY", "PE", "PH", "PN", "PL", "PT", "PR", "QA", "RE", "RO", "RU", "RW", "BL", "SH", "KN", "LC", "MF", "PM", "VC", "WS", "SM", "ST", "SA", "SN", "RS", "SC", "SL", "SG", "SX", "SK", "SI", "SB", "SO", "ZA", "GS", "SS", "ES", "LK", "SD", "SR", "SJ", "SZ", "SE", "CH", "SY", "TW", "TJ", "TZ", "TH", "TL", "TG", "TK", "TO", "TT", "TN", "TR", "TM", "TC", "TV", "UG", "UA", "AE", "GB", "US", "UM", "UY", "UZ", "VU", "VE", "VN", "VG", "VI", "WF", "EH", "YE", "ZM", "ZW"]
+---
+{
+	 
+	id:  ceil (data*modVal as Number) as String as Number,
+	quantity: 1,
+	price: if ((ceil(data*modVal) mod 2) == 0)  data*10000
+			else -1,
+	customerId: ceil (data*10 as Number) mod 10 ,
+	OrderState:  "CREATED",
+	product: if ((ceil(data*modVal) mod 2) == 0) "Apple" else "Mobile",
+	
+ 
+} ]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+			</ee:variables>
+		</ee:transform>
+		<flow-ref doc:name="order-implementation-subflow" doc:id="f9dc32bf-784f-4827-b6bf-584d430b1649" name="order-implementation-subflow" />
+	</flow>
+</mule>

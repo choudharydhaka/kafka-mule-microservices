@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:kafka="http://www.mulesoft.org/schema/mule/kafka" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/kafka http://www.mulesoft.org/schema/mule/kafka/current/mule-kafka.xsd">
+	<flow name="InverntoryServiceFlow" doc:id="74525eab-4a72-4d39-a1af-1fd1c5acb931" initialState="started">
+		<kafka:message-listener doc:name="inventory" doc:id="62c79ff4-892c-4042-b509-34c307107799" config-ref="inventory-Apache_Kafka_Consumer_configuration"/>
+		<ee:transform doc:name="Transform Message" doc:id="4c3910d9-80a1-40c4-a24e-1ae4e966deea" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+read(payload,'application/json')]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="8c714f2b-894c-4c90-a954-a7a7f7dfb727" >
+		
+		<when expression='#[payload.OrderState == "VALIDATED" or payload.ORDERSTATE == "VALIDATED"]'>
+				<logger level="DEBUG" doc:name='Validated Status' doc:id="7314bc40-5168-4531-902e-d9e20a6d088a" message='Nothing to process.' category="INVENTORY_VALIDATION" />
+			
+			</when>
+			<when expression='#[payload.OrderState == "CREATED"]'>
+			
+				 
+				<os:retrieve doc:name="Retrieve" doc:id="02e58b04-a35c-4054-9edd-e32eabeefa60" key="${inventory.store-name}" target="inventory">
+			<os:default-value><![CDATA[#[output application/java ---
+readUrl("classpath://products.table", "application/csv",{separator:","})]]]></os:default-value>
+		</os:retrieve>
+				<ee:transform doc:name="Transform Message" doc:id="a8859f38-9220-48be-9e47-5b62b00a8a42">
+			<ee:message>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="stock"><![CDATA[%dw 2.0
+import * from dw::util::Values
+output application/java
+var inventory=readUrl("classpath://products.table", "application/csv",{separator:","}) 
+fun productInStock (data,item) = (data filter $.product ==  item.product)  map {
+  	 	
+  		inStock: 	 $.stock as Number - item.quantity as Number >-1,
+  		product: $
+  	}
+
+
+var product={ product: "Apple", quantity: 1}
+---
+//productInStock(inventory,product)
+productInStock(vars.inventory,payload) 
+ ]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+				<logger level="DEBUG" doc:name="Logger" doc:id="b430a54c-e1c7-46d3-a0c7-19628445e805" message='#[output application/json --- { validationType: "Inventory",stock: vars.stock, inventory: vars.inventory}]' />
+				<choice doc:name="Choice" doc:id="a4dd0082-5bd8-4ae9-b3a9-1e812e783123">
+			<when expression="#[sizeOf(vars.stock)&gt;0 and vars.stock[0].inStock]">
+				<logger level="DEBUG" doc:name="Logger" doc:id="0970940a-b012-4e69-baff-07072d2a3c26" message='#[output application/json --- { validationType: "Inventory", msg: "Current Stock of the product " ++ (payload.product default "NONE") ++ " in the inventory is " ++ (vars.stock[0].product.stock default "INVALID")}]' category="INVENTORY_VALIDATION" />
+				<ee:transform doc:name="Transform Message" doc:id="702abd60-1929-4039-bce4-4f62392c1cb1">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="updateInventory"><![CDATA[%dw 2.0
+output application/java
+---
+vars.inventory map {
+	
+	id: $.id,
+	product: $.product,
+	// update the stock
+	stock: if ($.product == payload.product ) ($.stock - payload.quantity) else $.stock
+}]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+				<os:store doc:name="Store" doc:id="69bdeb3f-6fc0-44c5-b9b4-bc36a7099882" key="${inventory.store-name}">
+					<os:value><![CDATA[#[vars.updateInventory]]]></os:value>
+				</os:store>
+				<ee:transform doc:name="Transform Message" doc:id="cfdb29f5-7abb-4f5a-ac17-b55907526aff">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="record"><![CDATA[%dw 2.0
+output application/json
+---
+OrderValidation: {
+//OrderValidationResult -> [\"PASS\",\"FAIL\",\"ERROR\"]
+//OrderValidationType -> [\"INVENTORY_CHECK\",\"FRAUD_CHECK\",\"ORDER_DETAILS_CHECK\"]
+//orderId ->  String
+//OrderValidation
+OrderValidationResult : "PASS",
+OrderValidationType: "INVENTORY_CHECK",
+orderId: payload.id  
+
+
+}
+
+]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</when>
+			<otherwise>
+				<logger level="DEBUG" doc:name="Product doesn't exists" doc:id="9202744e-e37f-4ed5-99c6-ea9e8faf77b8" message='#[output application/json --- { validationType: "Inventory", msg: "Product " ++ (payload.product default "NONE") ++ " does not exists in the inventory"}]' category="INVENTORY_VALIDATION" />
+				<ee:transform doc:name="Record" doc:id="3a0f627d-6df8-4dd1-8fd0-ad8fb9c15a54">
+					<ee:message>
+					</ee:message>
+					<ee:variables>
+						<ee:set-variable variableName="record"><![CDATA[%dw 2.0
+output application/json
+---
+OrderValidation: {
+//OrderValidationResult -> [\"PASS\",\"FAIL\",\"ERROR\"]
+//OrderValidationType -> [\"INVENTORY_CHECK\",\"FRAUD_CHECK\",\"ORDER_DETAILS_CHECK\"]
+//orderId ->  String
+//OrderValidation
+OrderValidationResult : "FAIL",
+OrderValidationType: "INVENTORY_CHECK",
+orderId: payload.id  
+
+}
+
+]]></ee:set-variable>
+					</ee:variables>
+				</ee:transform>
+			</otherwise>
+		</choice>
+				<logger level="INFO" doc:name="Logger" doc:id="eb086a98-0035-48be-b8d2-e632e032b656" message='#[output application/json --- { validationType: "Inventory",record: vars.record}]' category="INVENTORY_VALIDATION" />
+				<kafka:publish doc:name="Order Publish to ${topic.order-validations.name}" doc:id="7a0ed7a8-b181-4bb7-b325-abe7401d8a55" config-ref="Apache_Kafka_Producer_configuration" topic="${topic.order-validations.name}">
+			<kafka:message><![CDATA[#[vars.record]]]></kafka:message>
+		</kafka:publish>
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name='{validationType: "Inventory", msg: "Order Received", details: payload }' doc:id="af53ca18-b166-4f12-b5f3-9e82bf3259ec" message='#[output application/json --- {validationType: "Inventory", msg: "Order Received with Invalid Status" ++ (payload.OrderStatus default "INVALID"), details: payload }]' category="INVENTORY_VALIDATION" />
+			</otherwise>
+		</choice>
+	</flow>
+</mule>
