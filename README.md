@@ -1,6 +1,6 @@
 
 # Logical Diagram
-![](.attachements\Diagram.jpg)
+![](.attachements/Diagram.jpg)
 
 
 # Create Kafka topics
