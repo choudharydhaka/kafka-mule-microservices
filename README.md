@@ -1,3 +1,8 @@
+
+# Logical Diagram
+![](.attachements\Diagram.png)
+
+
 # Create Kafka topics
 
 ```sh
@@ -180,3 +185,12 @@ DROP STREAM IF EXISTS s_ov delete topic;
 
 
 ```
+
+## Joins and Windows
+ksqlDB enables grouping records that have the same key for stateful operations, like joins, into windows. You specify a retention period for the window, and this retention period controls how long ksqlDB waits for out-of-order records. If a record arrives after the window's retention period has passed, the record is discarded and isn't processed in that window.
+> Note: Only stream-stream joins are windowed.
+### Join Requirements
+- Co-partitioned data
+- Join Capabilities
+> RIGHT OUTER JOIN isn't supported. Instead, swap the operands and use LEFT JOIN.
+> ksqlDB only supports INNER and LEFT joins between a stream and a table.
