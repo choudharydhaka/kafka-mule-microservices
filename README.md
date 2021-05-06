@@ -1,6 +1,94 @@
+# Introduction
+
+An online ecommerce firm started to thinking about a strategic shift towards microserivicea and the event streaming platform to provide a great near to real time experience to the customers. However, This enablement is a win win situation for the firm in the compitative market to address customer expectation, being more agile with emerging new techs. Internal to the organization, the new system will help the operational team to get a filter around the orders based on inventory, and only process the order which are having the required details in the order. The platform allows early detection of the potential security frauds heppening through the ecommerce platform.
+
+
+As part of this initiative, The business has made decision to choose Kafka as an event streaming and data store platform and MuleSoft for microservices to expose the required API and the data transformation.
+
+This proof of concept is a part of the strategy to modernizing the platform. The outcome will helps the business to provide a great confidense in order to start the actual solution on the existing plafrom.
+
+# Proof of Concept
+> This MVP project is for learning purpose, Nothing is good or bad in terms of utilizing various components.
+
+# Products and Platforms
+- Kafka (Docker container)
+- MuleSoft (Development Only)
+- KSQL (Docker container)
+
+## Prerequisite
+- Docker and Docker-compose
+- Anypoint Studio (Mule API development)
+- Java8 (AdoptOpenJdk preferably)
+- Git-bash (If using windows)
+
+# Network Diagram
+This is a proof of concept so we don't have any plan to deploy the actual solution somewhere else either on Anypoint Platform or Confluent Cloud. We are using simple Virtual Machine  based on CentOS, which has Docker and Docker compose preinstalled to run the Kafka platform as container. Docker-compose file manage all the containers as services.
+
+![](.attachements/orders-api-network-.jpg)
+
+
+# Business Use Cases
+|Sno|Details|
+|---|----------|
+|1| Customer should be able to place an order through the REST API|
+|2| Customer shoul be able to get a status of the order from the System using REST API|
+|3| System should be able to detect the frequency of credit card details in the order to detect a potential fraud|
+|4| Customer should be able get an email notification once the order is processed successfully|
+
+
+# Solution
+
+## MuleSoft Microservices 
+
+We have choosen MuleSoft to provide a REST interface to expose the Orders API to the frontend system. MuleSoft APIs are also responsible for data transformation and order validation from/to Kafka topics.
+
+|No.| API| Description|Kafka Topic (Read)|Kafka Topic (Write)|
+|--|-------|-----------|-----|--------|
+|1|Orders API| Orders API exposes a REST interface to the frontend to submit an order, Also has a CRON job optionally to submit the orders automatically (Stopped by default)| |```orders``` and ```payments```
+|2|Order Details Validation| This API does a validation around a number of fields has a valid peice of data for example: quantity, price |```order-validations```|```order-validations```|
+|3|Inventory Validation| This API does make sure that the ordered item is available in the stock and also update the stock based on the number of orders already placed|```order-validations```|```order-validations```|
+|4|Fraud Validation|This API does fraud validation based on the number of times a card being used by a customer(This is POC so this API does pass the validation at the moement)|```order-validations```|```order-validations```|
+|5|Customer API| This API pull the customer details from a file and push them to Kafka topic| |``` customers```
+|6| Email API| This API does send the email to the customers with the current status of the order| ```emails```
+
+
+## Kafka Topics
+|No.| Kafka Topic| Details 
+|--|-------| -----------|
+|1|```orders```| This topic keeps all the records with the status "Created" and "Validated"
+|2|```order-validations```| This topic keeps all the records with validation status PASS or FAIL|
+|3| ``` customers```| This topic keeps the records of all the available customers on the ecommerce system|
+|4|```payments```| Record all the payment details|
+|5|```emails```| Keep records of all emails to send to the customer once the order is processed|
+
+## KSQLDB
+KSQLDB is used for data transformation and report generation for all the orders. 
+- Aggregate all the records from ```order-validations``` with the same orderid and Push a record in ```orders``` topic with orderstatus (VALIDATED)
+- Run diffrent joins on various table or streams to generate a relation between orders and payments (to verify payment was made successfully), orders and customers (to generate report for an email)
+- Generate a report based on the joins and create new records in the ```emails``` topic
+
+> Note: KSQLDB creates a range of topics while creating new stream or insert queries.
 
 # Logical Diagram
+Below diagram allows an understanding how the Kafka, MuleSoft API's and KSQLDB working together to achive the desired solution as POC.
+
+There are mainly 3 sections 
+## 1. Kafka
+It is running as docker container sevice managed by docker-compose, it has 5 topics created initially using kafka-topics binary to accept the orders and start processing. However, KSQLDB scripts does create a few topics underneath to process and generate the reports/records.
+## 2. KSQLDB
+KSQLDB Server is running as a Docker container managed by docker-compose, however it also runs the application generated by the script for data processing as queries. These app does the defined jobs as a query running along side the KSQLDB server itself.
+
+## 3. MuleSoft
+Mule API's push the orders, customers details, payment details to Kafka topics and other side pull the data through streaming and transform the data, and either push the data back to Kafka topics or send notification to the exeternal systems.
+
+> Note: MuleSoft register all the Kafka consumbers in a diffrent Kafka consumer group to receive the same message across all the API's. However, using the same producer to push the messages into different topics.
+
+> KSQLDB and MuleSoft APIs works independently, its Kafka which understand both of them, however we can choose a different platform or tools compatible with Kafka for the same task.
+
 ![](.attachements/Diagram.jpg)
+
+
+
 
 
 # Create Kafka topics
