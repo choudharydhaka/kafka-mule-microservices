@@ -35,7 +35,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 	<flow name="customer-details-serviceFlow" doc:id="94df8da1-bc91-4c78-99af-bde26c482fc4" initialState="started">
 		<scheduler doc:name="Scheduler" doc:id="81208183-2ba4-4c3a-82b1-22820edd6b46" >
 			<scheduling-strategy >
-				<fixed-frequency frequency="10000"/>
+				<fixed-frequency/>
 			</scheduling-strategy>
 		</scheduler>
 		<ee:transform doc:name="Produce Order" doc:id="6ba7bbd4-85ff-46d9-87a7-f1496c5228e0">

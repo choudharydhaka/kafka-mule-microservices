@@ -1,0 +1,24 @@
+Host confluent
+  User developer
+  HostName 127.0.0.1
+  Port 2225
+  ServerAliveInterval 60
+  ForwardAgent yes
+  
+  # Local port , RemoteHost:RemotePost
+  # Kafka Cluster
+  LocalForward 2181 127.0.0.1:2181
+  LocalForward 3030 127.0.0.1:3030
+  LocalForward 8081 127.0.0.1:8081
+  LocalForward 8082 127.0.0.1:8082
+  LocalForward 8083 127.0.0.1:8083
+  LocalForward 9581 127.0.0.1:9581
+  LocalForward 9582 127.0.0.1:9582
+  LocalForward 9583 127.0.0.1:9583
+  LocalForward 9584 127.0.0.1:9584
+  LocalForward 9585 127.0.0.1:9585
+  LocalForward 9092 127.0.0.1:9092
+  LocalForward 9021 127.0.0.1:9021  
+  LocalForward 5601 127.0.0.1:5601
+  LocalForward 9200 127.0.0.1:9200
+  LocalForward 18894 127.0.0.1:18894  
