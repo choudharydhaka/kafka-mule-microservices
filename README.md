@@ -67,9 +67,9 @@ We have chosen MuleSoft to provide a REST interface to expose the Orders API to 
 |No.| API| Description | Kafka Topic (Read)|Kafka Topic (Write)|
 |--|-------|-----------|-----|--------|
 |1|Orders API| Orders API exposes a REST interface to the frontend to submit an order, Also has a CRON job optionally to submit the orders automatically (Stopped by default)| |```orders``` and ```payments```
-|2|Order Details Validation| This API does a validation around a number of fields has a valid piece of data for example: quantity, price |```order-validations```|```order-validations```|
-|3|Inventory Validation| This API does make sure that the ordered item is available in the stock and also update the stock based on the number of orders already placed |```order-validations```| ```order-validations```|
-|4|Fraud Validation|This API does fraud validation based on the number of times a card being used by a customer(This is POC so this API does pass the validation at the moment)|```order-validations```|```order-validations```|
+|2|Order Details Validation| This API does a validation around a number of fields has a valid piece of data for example: quantity, price |```order```|```order-validations```|
+|3|Inventory Validation| This API does make sure that the ordered item is available in the stock and also update the stock based on the number of orders already placed |```order```| ```order-validations```|
+|4|Fraud Validation|This API does fraud validation based on the number of times a card being used by a customer(This is POC so this API does pass the validation at the moment)|```order```|```order-validations```|
 |5|Customer API| This API pull the customer details from a file and push them to Kafka topic| |``` customers```
 |6| Email API| This API does send the email to the customers with the current status of the order| ```emails```
 
